@@ -1,0 +1,12 @@
+# Temporary files
+tmp*
+
+# Misc files
+.DS_Store
+.vscode/
+
+# Generated files
+artifacts/
+
+# Design files
+*.afdesign

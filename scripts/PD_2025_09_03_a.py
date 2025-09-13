@@ -53,7 +53,18 @@ ws_dir = Path(__file__).parent.parent
 img0 = decrypt_and_load_image(ws_dir.joinpath("media").joinpath("beauty-relic.asc"))
 
 # %%
+# --- Convert image to gray scale using explicit formula
+# Note: OpenCV uses BGR format, so we need to extract B, G, R channels
+B, G, R = cv2.split(img0)
+img1 = (0.2989 * R + 0.5870 * G + 0.1140 * B).astype(np.uint8)
+
+# %% Print image details
+print(f"Image shape: {img1.shape}, dtype: {img1.dtype}")
+
+# %%
 # --- Display the image using matplotlib
-plt.imshow(cv2.cvtColor(img0, cv2.COLOR_BGR2RGB))
+plt.imshow(img1, cmap='gray')
 plt.axis('off')
 plt.show()
+
+# %%

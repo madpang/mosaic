@@ -1,9 +1,11 @@
 """
 @file: PD_2025_09_03_a.py
 @brief: Decrypt an GPG encrypted media file and load it into memory.
-@date: [created: 2025-09-03, updated: 2025-09-06]
+@date: [created: 2025-09-03, updated: 2025-09-14]
 """
-# %%
+
+# %% Environment Setup
+# --- Package Imports
 import os
 import subprocess
 import tempfile
@@ -11,8 +13,9 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from PIL import Image
 
-# === Function Definitions
+# --- Function Definitions
 def decrypt_and_load_image(file_path):
 	"""
 	@brief: Decrypt a GPG encrypted image file and load it into memory.
@@ -45,18 +48,30 @@ def decrypt_and_load_image(file_path):
 
 		return image
 
-# === Main Execution
+# %% Main Execution
 # --- Workspace Setup
 # @note: Assume the directory structure is `<project_root>/scripts/<this_script>.py`
 ws_dir = Path(__file__).parent.parent
 # --- Load the encrypted image
 img0 = decrypt_and_load_image(ws_dir.joinpath("media").joinpath("beauty-relic.asc"))
 
+# [CHECKPOINT]
+# --- Print original image details
+print(f"Original Image shape: {img0.shape}, dtype: {img0.dtype}")
+# --- Display the original image using Pillow (opens in separate window)
+Image.fromarray(cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)).show(title="Decrypted Original Image")
+
 # %%
 # --- Convert image to gray scale using explicit formula
 # Note: OpenCV uses BGR format, so we need to extract B, G, R channels
 B, G, R = cv2.split(img0)
 img1 = (0.2989 * R + 0.5870 * G + 0.1140 * B).astype(np.uint8)
+
+# [CHECKPOINT]
+# --- Print grayscale image details
+print(f"Grayscale Image shape: {img1.shape}, dtype: {img1.dtype}")
+# --- Display the grayscale image using Pillow (opens in separate window)
+Image.fromarray(img1).show(title="Grayscale Image")
 
 # %% Print image details
 print(f"Image shape: {img1.shape}, dtype: {img1.dtype}")

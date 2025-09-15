@@ -48,6 +48,61 @@ def decrypt_and_load_image(file_path):
 
 		return image
 
+def ordfilt2(image: np.ndarray, order: int, kernel: np.ndarray, boundary: str = "symmetric") -> np.ndarray:
+	"""
+	@brief: 2D order-statistic filtering (equivalent to MATLAB's ordfilt2)
+
+	@param[out]:
+	- Filtered image (same size as input)
+	
+	@param[in]:
+	- image: Input image (2D numpy array)
+	- order: Order statistic (1 = minimum, kernel_size = maximum)
+	- kernel: Structuring element (2D numpy array of 0s and 1s)
+	- boundary: Boundary condition handling ("symmetric" or "zeros")
+
+	@note: For median filtering, use order = (kernel_size + 1) // 2
+	"""
+	
+	# Get kernel dimensions
+	kh, kw = kernel.shape
+	ph, pw = kh // 2, kw // 2
+
+	# Pad the image
+	if boundary == "symmetric":
+		padded = np.pad(image, ((ph, ph), (pw, pw)), mode="symmetric")
+	elif boundary == "zeros":
+		padded = np.pad(image, ((ph, ph), (pw, pw)), mode="constant", constant_values=0)
+	else:
+		raise ValueError('boundary must be "symmetric" or "zeros"')
+	
+	# precompute positions where kernel == 1 and the fixed neighborhood size K
+	positions = np.argwhere(kernel)                         # list of [ki, kj]
+	K = positions.shape[0]
+	if K == 0:
+		raise ValueError("kernel must contain at least one 1.")
+	if not (1 <= order <= K):
+		raise ValueError(f"order must be in [1, {K}], got {order}.")
+	
+	# Initialize output
+	H, W = image.shape
+	out = np.empty_like(image)
+
+	# fixed-size buffer for neighbors
+	neigh = np.empty(K, dtype=image.dtype)
+	k0 = order - 1  # zero-based index	
+	
+	# Apply order filter
+	for i in range(H):
+		for j in range(W):
+			# fill neighborhood values from padded image
+			for t, (ki, kj) in enumerate(positions):
+				neigh[t] = padded[i + ki, j + kj] # TL of window is (i, j) in padded
+			# sort and pick the k0-th element
+			out[i, j] = np.sort(neigh, kind="quicksort")[k0]
+
+	return out
+
 # %% Main Execution
 # --- Workspace Setup
 # @note: Assume the directory structure is `<project_root>/scripts/<this_script>.py`

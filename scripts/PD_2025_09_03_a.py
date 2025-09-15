@@ -86,20 +86,30 @@ def ordfilt2(image: np.ndarray, order: int, kernel: np.ndarray, boundary: str = 
 	
 	# Initialize output
 	H, W = image.shape
-	out = np.empty_like(image)
+	P = padded.shape[1]
+	flat = padded.ravel()
 
-	# fixed-size buffer for neighbors
-	neigh = np.empty(K, dtype=image.dtype)
-	k0 = order - 1  # zero-based index	
-	
+	pos = np.argwhere(kernel)
+	offsets = pos[:, 0] * P + pos[:, 1]
+	K = offsets.size
+	if K == 0:
+		raise ValueError("kernel must contain at least one 1.")
+	if not (1 <= order <= K):
+		raise ValueError(f"order must be in [1, {K}], got {order}.")
+	k0 = order - 1 # zero-based index
+
+	out = np.empty_like(image)
+	neigh = np.empty(K, dtype=image.dtype)  # fixed buffer for neighbors
+
 	# Apply order filter
 	for i in range(H):
+		base = i * P
 		for j in range(W):
-			# fill neighborhood values from padded image
-			for t, (ki, kj) in enumerate(positions):
-				neigh[t] = padded[i + ki, j + kj] # TL of window is (i, j) in padded
-			# sort and pick the k0-th element
-			out[i, j] = np.sort(neigh, kind="quicksort")[k0]
+			# Gather neighborhood into fixed buffer (no inner Python loop)
+			np.take(flat, base + j + offsets, out=neigh)
+			# In-place kth selection (no temporary copy)
+			neigh.partition(k0)
+			out[i, j] = neigh[k0]
 
 	return out
 
@@ -107,21 +117,15 @@ def ordfilt2(image: np.ndarray, order: int, kernel: np.ndarray, boundary: str = 
 # --- Workspace Setup
 # @note: Assume the directory structure is `<project_root>/scripts/<this_script>.py`
 ws_dir = Path(__file__).parent.parent
+
 # --- Load the encrypted image
 img0 = decrypt_and_load_image(ws_dir.joinpath("media").joinpath("beauty-relic.asc"))
 
-# [CHECKPOINT]
-# --- Print original image details
-print(f"Original Image shape: {img0.shape}, dtype: {img0.dtype}")
-# --- Display the original image using Pillow (opens in separate window)
-Image.fromarray(cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)).show(title="Decrypted Original Image")
-
 # --- Convert image to gray scale using explicit formula
-# Note: OpenCV uses BGR format, so we need to extract B, G, R channels
+# @note: OpenCV uses BGR format, so we need to extract B, G, R channels
 B, G, R = cv2.split(img0)
 img1 = (0.2989 * R + 0.5870 * G + 0.1140 * B).astype(np.uint8)
 
-# %%
 # --- Remove the watermark (A1 to A2 processing equivalent to MATLAB)
 # Extract patch from specific coordinates (MATLAB: A1(2766: 3342, 1614 : 4106))
 img2 = img1.copy()

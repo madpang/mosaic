@@ -1,7 +1,7 @@
 """
 @file: PD_2025_09_03_a.py
 @brief: Decrypt an GPG encrypted media file and load it into memory.
-@date: [created: 2025-09-03, updated: 2025-09-14]
+@date: [created: 2025-09-03, updated: 2025-09-15]
 """
 
 # %% Environment Setup
@@ -128,13 +128,52 @@ print(f"Grayscale Image shape: {img1.shape}, dtype: {img1.dtype}")
 # --- Display the grayscale image using Pillow (opens in separate window)
 Image.fromarray(img1).show(title="Grayscale Image")
 
-# %% Print image details
-print(f"Image shape: {img1.shape}, dtype: {img1.dtype}")
+# %%
+# --- Remove the watermark (A1 to A2 processing equivalent to MATLAB)
+# Extract patch from specific coordinates (MATLAB: A1(2766: 3342, 1614 : 4106))
+# @note: MATLAB uses 1-indexed, Python uses 0-indexed, so subtract 1
+patch_roi = img1[2765:3342, 1613:4106]  # 577×2493 patch
+
+print(f"Patch shape: {patch_roi.shape}, dtype: {patch_roi.dtype}")
+Image.fromarray(patch_roi).show(title="Patch ROI")
 
 # %%
-# --- Display the image using matplotlib
-plt.imshow(img1, cmap='gray')
-plt.axis('off')
-plt.show()
+# Apply order-statistic filtering (equivalent to MATLAB's ordfilt2)
+# MATLAB: ordfilt2(A1_patch, 1, ones(7, 7), "symmetric")
+kernel_7x7 = np.ones((7, 7), dtype=np.uint8)
+patch_ordfilt = ordfilt2(patch_roi, 1, kernel_7x7, "symmetric")
+
+print("Applied order-statistic filtering (minimal filtering)")
+Image.fromarray(patch_ordfilt).show(title="Patch ROI - After Filtering")
+
+# %%
+# Apply 2D median filtering using ordfilt2 (median is the middle order statistic)
+# MATLAB: medfilt2(..., [11, 25], "symmetric")
+# For median filtering: order = (kernel_size + 1) // 2
+kernel_11x25 = np.ones((11, 25), dtype=np.uint8)
+median_order = (11 * 25 + 1) // 2  # Middle order for median
+patch_filtered = ordfilt2(patch_ordfilt, median_order, kernel_11x25, "symmetric")
+
+print("Applied 2D median filtering")
+Image.fromarray(patch_filtered).show(title="Patch ROI - After Filtering")
+
+# %%
+# Create A2 by copying A1 and assigning the filtered patch back
+img2 = img1.copy()
+
+# Assign filtered patch back with offset and adjustment
+# MATLAB: A2(2866: 3332, 1624 : 4066) = A_patch(101 : (size(A_patch, 1) - 10), 11 : (size(A_patch, 2) - 40)) + 4
+patch_height, patch_width = patch_filtered.shape
+patch_interior = patch_filtered[100:patch_height-10, 10:patch_width-40]  # Extract interior region
+
+# Assign back to img2 with brightness adjustment (+4)
+target_h, target_w = patch_interior.shape
+img2[2865:2865+target_h, 1623:1623+target_w] = np.clip(patch_interior.astype(np.int16) + 4, 0, 255).astype(np.uint8)
+
+print(f"Watermark removal completed. Processed image shape: {img2.shape}")
+
+# [CHECKPOINT]
+# --- Display the processed image using Pillow (opens in separate window)
+Image.fromarray(img2).show(title="Processed Image (A2) - Watermark Removed")
 
 # %%

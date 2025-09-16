@@ -150,8 +150,12 @@ patch_in = img_patch[100:p_h-10, 10:p_w-40]  # Extract interior region
 patch_h, patch_w = patch_in.shape
 img2[2865:2865+patch_h, 1623:1623+patch_w] = np.clip(patch_in.astype(np.int16) + 4, 0, 255).astype(np.uint8)
 
+# --- Clip the image
+img3 = img2[0:3456, 0:5120]
+
 # [CHECKPOINT]
+print(f"img0.shape = {img0.shape}, img1.shape = {img1.shape}, img2.shape = {img2.shape}, img3.shape = {img3.shape}")
 # --- Display the processed image using Pillow (opens in separate window)
-Image.fromarray(img2).show(title="Processed Image")
+Image.fromarray(img3).show(title="Processed Image")
 
 # %%

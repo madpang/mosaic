@@ -1,7 +1,7 @@
 """
 @file: PD_2025_09_03_a.py
-@brief: Decrypt an GPG encrypted media file and load it into memory.
-@date: [created: 2025-09-03, updated: 2025-09-15]
+@brief: Create a wallpaper that is suitable for a 3024-by-1964 display from an encrypted media asset
+@date: [created: 2025-09-03, updated: 2025-09-17]
 """
 
 # %% Environment Setup
@@ -150,12 +150,15 @@ patch_in = img_patch[100:p_h-10, 10:p_w-40]  # Extract interior region
 patch_h, patch_w = patch_in.shape
 img2[2865:2865+patch_h, 1623:1623+patch_w] = np.clip(patch_in.astype(np.int16) + 4, 0, 255).astype(np.uint8)
 
-# --- Clip the image
+# --- Clip the image into the core area
 img3 = img2[0:3456, 0:5120]
 
+# --- Further clip and resize to fit into the target canvas
+img4 = cv2.resize(img3[52:52+2946, 292:292+4536], (3024, 1964), interpolation=cv2.INTER_LINEAR)
+
 # [CHECKPOINT]
-print(f"img0.shape = {img0.shape}, img1.shape = {img1.shape}, img2.shape = {img2.shape}, img3.shape = {img3.shape}")
+print(f"img0.shape = {img0.shape}, img1.shape = {img1.shape}, img2.shape = {img2.shape}, img3.shape = {img3.shape}, img4.shape = {img4.shape}")
 # --- Display the processed image using Pillow (opens in separate window)
-Image.fromarray(img3).show(title="Processed Image")
+Image.fromarray(img4).show(title="Processed Image")
 
 # %%
